@@ -207,7 +207,7 @@ def evaluate_policy(
             )
             if save_video:
                 frame = env.render()
-                # RenderFrame is ndarray | list[ndarray] | None; rgb_array mode always yields ndarray
+                # RenderFrame is ndarray | list[ndarray] | None; rgb_array always yields ndarray
                 assert isinstance(frame, np.ndarray)
                 frame = resize_frame(frame, video_size)
                 frames.append(frame)
