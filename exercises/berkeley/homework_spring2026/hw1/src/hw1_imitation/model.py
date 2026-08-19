@@ -8,6 +8,8 @@ from typing import Literal, TypeAlias
 import torch
 from torch import nn
 
+import einops
+
 
 class BasePolicy(nn.Module, metaclass=abc.ABCMeta):
     """Base class for action chunking policies."""
@@ -37,7 +39,6 @@ class BasePolicy(nn.Module, metaclass=abc.ABCMeta):
 class MSEPolicy(BasePolicy):
     """Predicts action chunks with an MSE loss."""
 
-    ### TODO: IMPLEMENT MSEPolicy HERE ###
     def __init__(
         self,
         state_dim: int,
@@ -46,13 +47,38 @@ class MSEPolicy(BasePolicy):
         hidden_dims: tuple[int, ...] = (128, 128),
     ) -> None:
         super().__init__(state_dim, action_dim, chunk_size)
+        self.input_dim = state_dim
+        self.chunk_size = chunk_size
+        self.action_dim = action_dim
+        layers = []
+        prev_dim = state_dim
+        for h_dim in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h_dim))
+            layers.append(nn.ReLU())
+            prev_dim = h_dim
+        layers.append(nn.Linear(prev_dim, self.chunk_size * self.action_dim))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        y = self.net(x)
+        y = einops.rearrange(
+            y, "b (t a) -> b t a", t=self.chunk_size, a=self.action_dim
+        )
+        return y
 
     def compute_loss(
         self,
         state: torch.Tensor,
         action_chunk: torch.Tensor,
     ) -> torch.Tensor:
-        raise NotImplementedError
+        # print(f"state.shape: {state.shape}, action_chunk.shape: {action_chunk.shape}")
+        y = self.sample_actions(state)
+        # print(f"y.shape: {y.shape}, action_chunk.shape: {action_chunk.shape}")
+        total_loss = (y - action_chunk) ** 2
+        summed_loss = total_loss.sum(dim=(1, 2))
+        average_loss = summed_loss.mean()
+        return average_loss
+        # raise NotImplementedError
 
     def sample_actions(
         self,
@@ -60,7 +86,8 @@ class MSEPolicy(BasePolicy):
         *,
         num_steps: int = 10,
     ) -> torch.Tensor:
-        raise NotImplementedError
+        return self.forward(state)
+        # raise NotImplementedError
 
 
 class FlowMatchingPolicy(BasePolicy):
@@ -103,6 +130,8 @@ def build_policy(
     chunk_size: int,
     hidden_dims: tuple[int, ...] = (128, 128),
 ) -> BasePolicy:
+    """Build a policy based on the policy type."""
+
     if policy_type == "mse":
         return MSEPolicy(
             state_dim=state_dim,

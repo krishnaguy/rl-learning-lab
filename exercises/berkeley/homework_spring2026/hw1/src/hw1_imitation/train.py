@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import torch
+import torch.optim as optim
 import tyro
 import wandb
 from torch.utils.data import DataLoader
@@ -20,7 +21,7 @@ from hw1_imitation.data import (
     load_pusht_zarr,
 )
 from hw1_imitation.model import build_policy, PolicyType
-from hw1_imitation.evaluation import Logger
+from hw1_imitation.evaluation import Logger, evaluate_policy
 
 LOGDIR_PREFIX = "exp"
 
@@ -88,7 +89,9 @@ def config_to_dict(config: TrainConfig) -> dict[str, Any]:
 
 def run_training(config: TrainConfig) -> None:
     set_seed(config.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    print(f"Using device: {device}")
     print(f"Using device: {device}")
 
     zarr_path = download_pusht(config.data_dir)
@@ -127,12 +130,81 @@ def run_training(config: TrainConfig) -> None:
     )
     logger = Logger(log_dir)
 
-    ### TODO: PUT YOUR MAIN TRAINING LOOP HERE ###
+    ### Done: PUT YOUR MAIN TRAINING LOOP HERE ###
+    optimizer = optim.AdamW(
+        model.parameters(),
+        lr=config.lr,
+        weight_decay=config.weight_decay,
+    )
+    loader = DataLoader(
+        dataset,
+        batch_size=config.batch_size,
+        shuffle=True,
+        drop_last=True,
+    )
+    step = 0
+    for epoch in range(config.num_epochs):  # loop over the dataset multiple times
+        running_loss = 0.0
+        print(f"Epoch: {epoch}")
+        for i, data in enumerate(loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            obs, actions = data
+            obs = obs.to(device)
+            actions = actions.to(device)
+            # print(i)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            # outputs = model.sample_actions(obs)
+            # print(f'outputs.shape: {outputs.shape}, actions: {actions.shape}')
+            loss = model.compute_loss(obs, actions)
+            loss.backward()
+            optimizer.step()
+            step += 1
+            if step % config.log_interval == 0:
+                wandb.log({"loss": loss.item()})
+            if step % config.eval_interval == 0:
+                print(f"Step: {step}, Loss: {loss.item()}")
+                evaluate_policy(
+                    model=model,
+                    device=device,
+                    chunk_size=config.chunk_size,
+                    normalizer=normalizer,
+                    video_size=config.video_size,
+                    num_video_episodes=config.num_video_episodes,
+                    flow_num_steps=config.flow_num_steps,
+                    logger=logger,
+                    step=step,
+                )
+            # print statistics
+            running_loss += loss.item()
+            if i % 2000 == 19:  # print every 2000 mini-batches
+                print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
+                running_loss = 0.0
+
+    print("Finished Training")
+    # logger.dump_for_grading()
+    evaluate_policy(
+        model=model,
+        device=device,
+        chunk_size=config.chunk_size,
+        normalizer=normalizer,
+        video_size=config.video_size,
+        num_video_episodes=config.num_video_episodes,
+        flow_num_steps=config.flow_num_steps,
+        logger=logger,
+        step=0,
+    )
+    print("finished Evaluation")
+    logger.dump_for_grading()
 
     logger.dump_for_grading()
 
 
 def main() -> None:
+    """Main function to run the training."""
     config = parse_train_config()
     run_training(config)
 

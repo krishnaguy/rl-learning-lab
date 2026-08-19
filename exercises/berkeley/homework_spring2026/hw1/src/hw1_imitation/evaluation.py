@@ -10,7 +10,7 @@ import shutil
 from typing import Any
 import copy
 
-# import gym_pusht  # noqa: F401
+import gym_pusht  # noqa: F401  # registers gym_pusht/PushT-v0 with gymnasium
 import gymnasium as gym
 from gymnasium.spaces import Box
 import imageio.v2 as imageio
