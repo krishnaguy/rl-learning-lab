@@ -207,8 +207,8 @@ def evaluate_policy(
             )
             if save_video:
                 frame = env.render()
-                # env.render() returns RenderFrame | None; assert since render_mode="rgb_array" guarantees a frame
-                assert frame is not None
+                # env.render() returns RenderFrame | None; render_mode="rgb_array" guarantees a single ndarray
+                assert isinstance(frame, np.ndarray)
                 frame = resize_frame(frame, video_size)
                 frames.append(frame)
             max_reward = max(max_reward, float(reward))
