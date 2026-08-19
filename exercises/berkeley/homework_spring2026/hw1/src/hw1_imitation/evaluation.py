@@ -95,7 +95,7 @@ def encode_video(frames: list[np.ndarray], fps: int = 20) -> wandb.Video | None:
             macro_block_size=1,
         ) as writer:
             for frame in frames:
-                writer.append_data(frame)  # type: ignore[attr-defined]  # imageio stubs omit append_data
+                writer.append_data(frame)  # type: ignore[attr-defined]  # imageio stubs
         with open(tmp_path, "rb") as f:
             video_bytes = f.read()
         return wandb.Video(io.BytesIO(video_bytes), format="mp4")
