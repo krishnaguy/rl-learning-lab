@@ -6,21 +6,22 @@ import io
 import os
 import tempfile
 from pathlib import Path
+import shutil
+from typing import Any
+import copy
 
-import gym_pusht  # noqa: F401
+# import gym_pusht  # noqa: F401
 import gymnasium as gym
 from gymnasium.spaces import Box
 import imageio.v2 as imageio
 import numpy as np
 import torch
 import wandb
-import shutil
 from PIL import Image
 
 from hw1_imitation.data import Normalizer
 from hw1_imitation.model import BasePolicy
-import copy
-from typing import Any
+
 
 ENV_ID = "gym_pusht/PushT-v0"
 NUM_EVAL_EPISODES = 100
@@ -41,6 +42,7 @@ class Logger:
         self.rows = []
 
     def log(self, row: dict[str, Any], step: int) -> None:
+        """Log a row of metrics to the CSV and Weights & Biases."""
         row["step"] = step
         if self.header is None:
             self.header = [
@@ -61,6 +63,7 @@ class Logger:
         self.rows.append(copy.deepcopy(row))
 
     def dump_for_grading(self) -> None:
+        """Dump the logs to a directory for grading."""
         # wandb.run is Optional[Run]; assert narrows type and guards against uninitialized run
         assert wandb.run is not None
         wandb_dir = Path(wandb.run.dir).parent
@@ -69,6 +72,7 @@ class Logger:
 
 
 def resize_frame(frame: np.ndarray, size: tuple[int, int]) -> np.ndarray:
+    """Resize a frame to a given size."""
     image = Image.fromarray(frame)
     # Image.BILINEAR was removed in Pillow 10; use Image.Resampling.BILINEAR instead
     resized = image.resize(size, resample=Image.Resampling.BILINEAR)
@@ -76,6 +80,7 @@ def resize_frame(frame: np.ndarray, size: tuple[int, int]) -> np.ndarray:
 
 
 def encode_video(frames: list[np.ndarray], fps: int = 20) -> wandb.Video | None:
+    """Encode a list of frames into a video."""
     if not frames:
         return None
 
@@ -90,7 +95,7 @@ def encode_video(frames: list[np.ndarray], fps: int = 20) -> wandb.Video | None:
             macro_block_size=1,
         ) as writer:
             for frame in frames:
-                writer.append_data(frame)
+                writer.append_data(frame)  # type: ignore[attr-defined]  # imageio stubs omit append_data
         with open(tmp_path, "rb") as f:
             video_bytes = f.read()
         return wandb.Video(io.BytesIO(video_bytes), format="mp4")
@@ -102,6 +107,7 @@ def encode_video(frames: list[np.ndarray], fps: int = 20) -> wandb.Video | None:
 
 
 def log_checkpoint_artifact(model: BasePolicy, step: int) -> None:
+    """Log a checkpoint artifact to Weights & Biases."""
     if wandb.run is None:
         raise RuntimeError("wandb.init did not create a run.")
 
