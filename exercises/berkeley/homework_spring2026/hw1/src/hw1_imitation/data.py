@@ -6,6 +6,7 @@ import urllib.request
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -69,7 +70,8 @@ def download_pusht(dataset_dir: Path) -> Path:
 
 
 def load_pusht_zarr(zarr_path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    root = zarr.open(zarr_path, mode="r")
+    # zarr.open is typed as Array | Group; nested str keys only exist on Group.
+    root: Any = zarr.open(zarr_path, mode="r")
     states = np.asarray(root["data"]["state"][:], dtype=np.float32)
     actions = np.asarray(root["data"]["action"][:], dtype=np.float32)
     episode_ends = np.asarray(root["meta"]["episode_ends"][:], dtype=np.int64)

@@ -1,12 +1,15 @@
 {
   "venvPath": ".",
   "venv": ".venv",
-  "pythonVersion": "3.14",
+  "pythonVersion": "3.13",
   "executionEnvironments": [
     {
       "root": ".",
-      "pythonVersion": "3.14",
-      "extraPaths": [".venv/lib/python3.14/site-packages"]
+      "pythonVersion": "3.13",
+      "extraPaths": [
+        ".venv/lib/python3.14/site-packages",
+        "exercises/berkeley/homework_spring2026/hw1/src"
+      ]
     }
   ]
 }

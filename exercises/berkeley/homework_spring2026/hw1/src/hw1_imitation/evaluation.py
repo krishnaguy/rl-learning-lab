@@ -9,6 +9,7 @@ from pathlib import Path
 
 import gym_pusht  # noqa: F401
 import gymnasium as gym
+from gymnasium.spaces import Box
 import imageio.v2 as imageio
 import numpy as np
 import torch
@@ -60,6 +61,8 @@ class Logger:
         self.rows.append(copy.deepcopy(row))
 
     def dump_for_grading(self) -> None:
+        # wandb.run is Optional[Run]; assert narrows type and guards against uninitialized run
+        assert wandb.run is not None
         wandb_dir = Path(wandb.run.dir).parent
         wandb.finish()
         shutil.copytree(wandb_dir, self.path / "wandb")
@@ -67,7 +70,8 @@ class Logger:
 
 def resize_frame(frame: np.ndarray, size: tuple[int, int]) -> np.ndarray:
     image = Image.fromarray(frame)
-    resized = image.resize(size, resample=Image.BILINEAR)
+    # Image.BILINEAR was removed in Pillow 10; use Image.Resampling.BILINEAR instead
+    resized = image.resize(size, resample=Image.Resampling.BILINEAR)
     return np.asarray(resized)
 
 
@@ -160,6 +164,8 @@ def evaluate_policy(
     videos: list[wandb.Video] = []
 
     env = gym.make(ENV_ID, obs_type="state", render_mode="rgb_array")
+    # action_space is typed as Space[ActType]; assert to Box to access .low/.high
+    assert isinstance(env.action_space, Box)
     action_low = env.action_space.low
     action_high = env.action_space.high
 
@@ -195,6 +201,8 @@ def evaluate_policy(
             )
             if save_video:
                 frame = env.render()
+                # env.render() returns RenderFrame | None; assert since render_mode="rgb_array" guarantees a frame
+                assert frame is not None
                 frame = resize_frame(frame, video_size)
                 frames.append(frame)
             max_reward = max(max_reward, float(reward))
