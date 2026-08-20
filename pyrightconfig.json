@@ -8,7 +8,8 @@
       "pythonVersion": "3.13",
       "extraPaths": [
         ".venv/lib/python3.14/site-packages",
-        "exercises/berkeley/homework_spring2026/hw1/src"
+        "exercises/berkeley/homework_spring2026/hw1/src",
+        "exercises/stanford/cs224_spring_2026/hw1_starter_code"
       ]
     }
   ]
