@@ -32,7 +32,7 @@ class TrainConfig:
     data_dir: Path = Path("data")
 
     # The policy type -- either MSE or flow.
-    policy_type: PolicyType = "mse"
+    policy_type: PolicyType = "flow"
     # The number of denoising steps to use for the flow policy (has no effect for the MSE policy).
     flow_num_steps: int = 10
     # The action chunk size.
@@ -92,7 +92,6 @@ def run_training(config: TrainConfig) -> None:
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Using device: {device}")
-    print(f"Using device: {device}")
 
     zarr_path = download_pusht(config.data_dir)
     states, actions, episode_ends = load_pusht_zarr(zarr_path)
@@ -136,12 +135,7 @@ def run_training(config: TrainConfig) -> None:
         lr=config.lr,
         weight_decay=config.weight_decay,
     )
-    loader = DataLoader(
-        dataset,
-        batch_size=config.batch_size,
-        shuffle=True,
-        drop_last=True,
-    )
+
     step = 0
     for epoch in range(config.num_epochs):  # loop over the dataset multiple times
         running_loss = 0.0
@@ -180,8 +174,8 @@ def run_training(config: TrainConfig) -> None:
                 )
             # print statistics
             running_loss += loss.item()
-            if i % 2000 == 19:  # print every 2000 mini-batches
-                print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
+            if i % 200 == 0:  # print every 2000 mini-batches
+                print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}")
                 running_loss = 0.0
 
     print("Finished Training")
@@ -195,11 +189,9 @@ def run_training(config: TrainConfig) -> None:
         num_video_episodes=config.num_video_episodes,
         flow_num_steps=config.flow_num_steps,
         logger=logger,
-        step=0,
+        step=step,
     )
     print("finished Evaluation")
-    logger.dump_for_grading()
-
     logger.dump_for_grading()
 
 
