@@ -2,6 +2,7 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.analysis.extraPaths": [
     "${workspaceFolder}/.venv/lib/python3.14/site-packages",
-    "${workspaceFolder}/exercises/berkeley/homework_spring2026/hw1/src"
+    "${workspaceFolder}/exercises/berkeley/homework_spring2026/hw1/src",
+    "${workspaceFolder}/exercises/stanford/cs224_spring_2026/hw1_starter_code"
   ]
 }
